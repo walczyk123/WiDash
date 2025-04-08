@@ -12,22 +12,22 @@ ESP8266WebServer server(80);
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 3600, 60000);
 
-int wifiRetries = 3;  // Number of WiFi connection attempts
+const int wifiRetries = 3;  // Number of WiFi connection attempts
+const int RSSI_MIN = -100;  // Minimum signal level in dBm
+const int RSSI_MAX = -50;   // Maximum signal level in dBm
 
-// Function to calculate signal strength percentage
-int getSignalStrengthPercentage() {
-  int rssi = WiFi.RSSI();  // Get RSSI
-  if (rssi <= -100) return 0;      // Weakest possible signal
-  if (rssi >= -50) return 100;     // Best possible signal
-  return map(rssi, -100, -50, 0, 100);
+int rssiToPercentage(int rssi) {
+  if (rssi <= RSSI_MIN) return 0;
+  if (rssi >= RSSI_MAX) return 100;
+  return map(rssi, RSSI_MIN, RSSI_MAX, 0, 100);
 }
 
-// Overloaded function for scanning networks
+int getSignalStrengthPercentage() {
+  return rssiToPercentage(WiFi.RSSI());
+}
+
 int getSignalStrengthPercentage(int networkIndex) {
-  int rssi = WiFi.RSSI(networkIndex);  // Get RSSI of scanned network
-  if (rssi <= -100) return 0;
-  if (rssi >= -50) return 100;
-  return map(rssi, -100, -50, 0, 100);
+  return rssiToPercentage(WiFi.RSSI(networkIndex));
 }
 
 void setup() {
