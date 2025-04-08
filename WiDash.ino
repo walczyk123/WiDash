@@ -2,11 +2,7 @@
 #include <ESP8266WebServer.h>
 #include <WiFiUdp.h>
 #include <NTPClient.h>
-#include "credentials.h"
-#include "html_index.h"
-#include "html_sensors.h"
-#include "html_networks.h"
-#include "html_status.h"
+#include "routes.h"
 
 ESP8266WebServer server(80);
 WiFiUDP ntpUDP;
@@ -56,21 +52,7 @@ void setup() {
   timeClient.begin();
 
   // Setup web server routes
-  server.on("/", []() {
-    serveHTML_P(HTML_INDEX);
-  });
-
-  server.on("/sensors", []() {
-    serveHTML_P(HTML_SENSORS);
-  });
-
-  server.on("/networks", []() {
-    serveHTML_P(HTML_NETWORKS);
-  });
-
-  server.on("/status", []() {
-    serveHTML_P(HTML_STATUS);
-  });
+  setupRoutes();
 
   server.begin();
   Serial.println("HTTP server started.");
