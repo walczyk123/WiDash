@@ -32,7 +32,7 @@ void setup() {
   server.begin();
   Serial.println("HTTP server started.");
 
-  // Show serial menu
+  // Show initial serial menu
   showSerialMenu();
 }
 
@@ -44,26 +44,46 @@ void loop() {
     String command = Serial.readStringUntil('\n');
     command.trim();
 
-    if (command == "1") {
-      connectToWiFi();
-    } else if (command == "2") {
-      listAvailableNetworks();
-    } else if (command == "3") {
-      connectToNewWiFi();
-    } else if (command == "4") {
-      showConnectionStatus();
-    } else if (command == "5") {
-      disconnectFromWiFi();
-    } else if (command == "exit") {
-      Serial.println("Exiting and restarting...");
-      delay(1000);
-      ESP.restart();
-    } else {
-      Serial.println("Unknown command. Try again.");
-    }
+    handleSerialCommand(command);
 
     showSerialMenu();
   }
+}
+
+void handleSerialCommand(const String& command) {
+  if (command == "1") {
+    connectToWiFi();
+    return;
+  }
+
+  if (command == "2") {
+    listAvailableNetworks();
+    return;
+  }
+
+  if (command == "3") {
+    connectToNewWiFi();
+    return;
+  }
+
+  if (command == "4") {
+    showConnectionStatus();
+    return;
+  }
+
+  if (command == "5") {
+    disconnectFromWiFi();
+    return;
+  }
+
+  if (command == "exit") {
+    Serial.println("Exiting and restarting...");
+    delay(1000);
+    ESP.restart();
+    return;
+  }
+
+  Serial.println("Unknown command. Try again.");
 }
 
 // Function to connect to WiFi (common code for both saved and new networks)
