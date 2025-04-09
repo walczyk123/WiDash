@@ -3,6 +3,7 @@
 #include <WiFiUdp.h>
 #include <NTPClient.h>
 #include "routes.h"
+#include "credentials.h"
 
 ESP8266WebServer server(80);
 WiFiUDP ntpUDP;
@@ -26,38 +27,45 @@ int getSignalStrengthPercentage(int networkIndex) {
   return rssiToPercentage(WiFi.RSSI(networkIndex));
 }
 
-void setup() {
-  Serial.begin(115200);
-  Serial.println("\n=== WiDash Boot ===");
-
-  // Set WiFi to Station mode and connect
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid_default, pass_default);
+bool tryWiFiConnect(const char* ssid, const char* password, int maxRetries) {
+  WiFi.begin(ssid, password);
   Serial.print("Connecting to WiFi");
 
   int retries = 0;
-  while (WiFi.status() != WL_CONNECTED && retries++ < wifiRetries) {
+  while (WiFi.status() != WL_CONNECTED && retries++ < maxRetries) {
     delay(1000);
     Serial.print(".");
   }
 
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println(" ✅ Connected!");
+    Serial.println("Connected!");
     Serial.print("IP: "); Serial.println(WiFi.localIP());
+    return true;
   } else {
-    Serial.println(" ❌ Failed to connect.");
+    Serial.println("Failed to connect.");
+    return false;
   }
+}
 
-  // Initialize NTP client
+void setup() {
+  Serial.begin(115200);
+  Serial.println("\n=== WiDash Boot ===");
+
+  // Try to connect using defaults from credentials.h
+  WiFi.mode(WIFI_STA);
+  tryWiFiConnect(ssid_default, pass_default, wifiRetries);
+
+  // Init NTP
   timeClient.begin();
 
-  // Setup web server routes
-  setupRoutes();
+  // Setup routes
+  setupRoutes(server);
 
+  // Start server
   server.begin();
   Serial.println("HTTP server started.");
 
-  // Show menu
+  // Show serial menu (jeśli masz coś takiego)
   showSerialMenu();
 }
 
@@ -112,10 +120,10 @@ void connectToWiFi() {
   }
 
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println(" ✅ Connected!");
+    Serial.println("Connected!");
     Serial.print("IP: "); Serial.println(WiFi.localIP());
   } else {
-    Serial.println(" ❌ Connection failed.");
+    Serial.println("Connection failed.");
   }
 }
 
