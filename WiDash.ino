@@ -20,7 +20,7 @@ void setup() {
 
   // Try to connect using defaults from credentials.h
   WiFi.mode(WIFI_STA);
-  tryWiFiConnect(ssid_default, pass_default, wifiRetries);
+  connectWiFi(ssid_default, pass_default);
 
   // Init NTP
   timeClient.begin();
