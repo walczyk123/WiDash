@@ -4,16 +4,14 @@
 #include <NTPClient.h>
 #include "routes.h"
 #include "credentials.h"
+#include "boardinfo.h"
 
 ESP8266WebServer server(80);
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 3600, 60000);
 
 const int wifiRetries = 3;  // Number of WiFi connection attempts
-const int RSSI_MIN = -100;  // Minimum signal level in dBm
-const int RSSI_MAX = -50;   // Maximum signal level in dBm
 
-// Setup and loop first
 void setup() {
   Serial.begin(115200);
   Serial.println("\n=== WiDash Boot ===");
@@ -173,13 +171,19 @@ String readSerialInput() {
 void serveHTML_P(const char* html_template) {
   String html = FPSTR(html_template);
 
-  String rssi = String(WiFi.RSSI()) + " dBm";
-  String rssiPercentage = String(getSignalStrengthPercentage()) + " %";
-
-  html.replace("{{SSID}}", WiFi.SSID());
-  html.replace("{{RSSI}}", rssi);
-  html.replace("{{RSSI_PERCENT}}", rssiPercentage);
-  html.replace("{{TIME}}", timeClient.getFormattedTime());
+  html.replace("{{SSID}}", getSSID());
+  html.replace("{{RSSI}}", getRSSI());
+  html.replace("{{RSSI_PERCENT}}", String(getSignalStrengthPercentage()));
+  html.replace("{{TIME}}", getTime(timeClient));
+  html.replace("{{UPTIME}}", getUptime());
+  html.replace("{{IP}}", getIP());
+  html.replace("{{MAC}}", getMAC());
+  html.replace("{{FREE_RAM}}", getFreeRAM());
+  html.replace("{{MAX_RAM}}", getMaxRAM());
+  html.replace("{{FLASH_SIZE}}", getFlashSize());
+  html.replace("{{MAX_FLASH_SIZE}}", getMaxFlashSize());
+  html.replace("{{SDK_VERSION}}", getSDKVersion());
+  html.replace("{{CPU_FREQUENCY}}", getCPUFrequency());
 
   if (html.indexOf("{{NETWORK_LIST}}") != -1) {
     int n = WiFi.scanNetworks();
@@ -193,13 +197,6 @@ void serveHTML_P(const char* html_template) {
   }
 
   server.send(200, "text/html", html);
-}
-
-// Function to calculate signal strength percentage
-int rssiToPercentage(int rssi) {
-  if (rssi <= RSSI_MIN) return 0;
-  if (rssi >= RSSI_MAX) return 100;
-  return map(rssi, RSSI_MIN, RSSI_MAX, 0, 100);
 }
 
 int getSignalStrengthPercentage() {

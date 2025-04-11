@@ -8,12 +8,29 @@ const char HTML_STATUS[] PROGMEM = R"rawliteral(
 </head>
 <body>
     <h1>Status</h1>
+
     <div>
         <h2>Current Network</h2>
         <p><strong>SSID:</strong> {{SSID}}</p>
         <p><strong>Signal Strength:</strong> {{RSSI}} ({{RSSI_PERCENT}})</p>
         <p><strong>IP:</strong> {{IP}}</p>
+        <p><strong>MAC Address:</strong> {{MAC}}</p>
+    </div>
+
+    <div>
+        <h2>Time and Uptime</h2>
         <p><strong>Time:</strong> {{TIME}}</p>
+        <p><strong>Uptime:</strong> {{UPTIME}}</p>
+    </div>
+
+    <div>
+        <h2>Power and System</h2>
+        <p><strong>Free RAM:</strong> {{FREE_RAM}}</p>
+        <p><strong>Max RAM:</strong> {{MAX_RAM}}</p>
+        <p><strong>Flash Size:</strong> {{FLASH_SIZE}}</p>
+        <p><strong>Max Flash Size:</strong> {{MAX_FLASH_SIZE}}</p>
+        <p><strong>SDK Version:</strong> {{SDK_VERSION}}</p>
+        <p><strong>CPU Frequency:</strong> {{CPU_FREQUENCY}}</p>
     </div>
 
     <div>
