@@ -30,6 +30,7 @@ const char HTML_STATUS[] PROGMEM = R"rawliteral(
         <p><strong>Flash Size:</strong> {{FLASH_SIZE}}</p>
         <p><strong>Max Flash Size:</strong> {{MAX_FLASH_SIZE}}</p>
         <p><strong>SDK Version:</strong> {{SDK_VERSION}}</p>
+        <p><strong>CPU Frequency:</strong> {{CPU_FREQUENCY}}</p>
     </div>
 
     <div>

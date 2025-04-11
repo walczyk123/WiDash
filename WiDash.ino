@@ -183,6 +183,7 @@ void serveHTML_P(const char* html_template) {
   html.replace("{{FLASH_SIZE}}", getFlashSize());
   html.replace("{{MAX_FLASH_SIZE}}", getMaxFlashSize());
   html.replace("{{SDK_VERSION}}", getSDKVersion());
+  html.replace("{{CPU_FREQUENCY}}", getCPUFrequency());
 
   if (html.indexOf("{{NETWORK_LIST}}") != -1) {
     int n = WiFi.scanNetworks();

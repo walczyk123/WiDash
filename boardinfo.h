@@ -54,11 +54,15 @@ String getFlashSize() {
 }
 
 String getMaxFlashSize() {
-  return String(ESP.getFlashChipSize() / 1024 / 1024) + " MB";
+  return String(ESP.getFlashChipSize()) + " B";
 }
 
 String getSDKVersion() {
   return String(ESP.getSdkVersion());
+}
+
+String getCPUFrequency() {
+  return String(ESP.getCpuFreqMHz()) + " MHz";
 }
 
 #endif
