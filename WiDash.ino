@@ -2,80 +2,37 @@
 #include <ESP8266WebServer.h>
 #include <WiFiUdp.h>
 #include <NTPClient.h>
+#include "routes.h"
 #include "credentials.h"
-#include "html_index.h"
-#include "html_sensors.h"
-#include "html_networks.h"
-#include "html_status.h"
 
 ESP8266WebServer server(80);
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 3600, 60000);
 
-int wifiRetries = 3;  // Number of WiFi connection attempts
+const int wifiRetries = 3;  // Number of WiFi connection attempts
+const int RSSI_MIN = -100;  // Minimum signal level in dBm
+const int RSSI_MAX = -50;   // Maximum signal level in dBm
 
-// Function to calculate signal strength percentage
-int getSignalStrengthPercentage() {
-  int rssi = WiFi.RSSI();  // Get RSSI
-  if (rssi <= -100) return 0;      // Weakest possible signal
-  if (rssi >= -50) return 100;     // Best possible signal
-  return map(rssi, -100, -50, 0, 100);
-}
-
-// Overloaded function for scanning networks
-int getSignalStrengthPercentage(int networkIndex) {
-  int rssi = WiFi.RSSI(networkIndex);  // Get RSSI of scanned network
-  if (rssi <= -100) return 0;
-  if (rssi >= -50) return 100;
-  return map(rssi, -100, -50, 0, 100);
-}
-
+// Setup and loop first
 void setup() {
   Serial.begin(115200);
   Serial.println("\n=== WiDash Boot ===");
 
-  // Set WiFi to Station mode and connect
+  // Try to connect using defaults from credentials.h
   WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid_default, pass_default);
-  Serial.print("Connecting to WiFi");
+  connectWiFi(ssid_default, pass_default);
 
-  int retries = 0;
-  while (WiFi.status() != WL_CONNECTED && retries++ < wifiRetries) {
-    delay(1000);
-    Serial.print(".");
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println(" ✅ Connected!");
-    Serial.print("IP: "); Serial.println(WiFi.localIP());
-  } else {
-    Serial.println(" ❌ Failed to connect.");
-  }
-
-  // Initialize NTP client
+  // Init NTP
   timeClient.begin();
 
-  // Setup web server routes
-  server.on("/", []() {
-    serveHTML_P(HTML_INDEX);
-  });
+  // Setup routes
+  setupRoutes(server);
 
-  server.on("/sensors", []() {
-    serveHTML_P(HTML_SENSORS);
-  });
-
-  server.on("/networks", []() {
-    serveHTML_P(HTML_NETWORKS);
-  });
-
-  server.on("/status", []() {
-    serveHTML_P(HTML_STATUS);
-  });
-
+  // Start server
   server.begin();
   Serial.println("HTTP server started.");
 
-  // Show menu
+  // Show initial serial menu
   showSerialMenu();
 }
 
@@ -87,28 +44,111 @@ void loop() {
     String command = Serial.readStringUntil('\n');
     command.trim();
 
-    if (command == "1") {
-      connectToWiFi();
-    } else if (command == "2") {
-      listAvailableNetworks();
-    } else if (command == "3") {
-      connectToNewWiFi();
-    } else if (command == "4") {
-      showConnectionStatus();
-    } else if (command == "5") {
-      disconnectFromWiFi();
-    } else if (command == "exit") {
-      Serial.println("Exiting and restarting...");
-      delay(1000);
-      ESP.restart();
-    } else {
-      Serial.println("Unknown command. Try again.");
-    }
+    handleSerialCommand(command);
 
     showSerialMenu();
   }
 }
 
+void handleSerialCommand(const String& command) {
+  if (command == "1") {
+    connectToWiFi();
+    return;
+  }
+
+  if (command == "2") {
+    listAvailableNetworks();
+    return;
+  }
+
+  if (command == "3") {
+    connectToNewWiFi();
+    return;
+  }
+
+  if (command == "4") {
+    showConnectionStatus();
+    return;
+  }
+
+  if (command == "5") {
+    disconnectFromWiFi();
+    return;
+  }
+
+  if (command == "exit") {
+    Serial.println("Exiting and restarting...");
+    delay(1000);
+    ESP.restart();
+    return;
+  }
+
+  Serial.println("Unknown command. Try again.");
+}
+
+// Function to connect to WiFi (common code for both saved and new networks)
+bool connectWiFi(const char* ssid, const char* password) {
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi...");
+
+  int retries = 0;
+  while (WiFi.status() != WL_CONNECTED && retries++ < wifiRetries) {
+    delay(1000);
+    Serial.print(".");
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("Connected!");
+    Serial.print("IP: "); Serial.println(WiFi.localIP());
+    return true;
+  } else {
+    Serial.println("Failed to connect.");
+    return false;
+  }
+}
+
+// Function to connect to saved WiFi (default credentials)
+void connectToWiFi() {
+  connectWiFi(ssid_default, pass_default);
+}
+
+// Function to connect to a new WiFi network (user input)
+void connectToNewWiFi() {
+  Serial.print("Enter new network SSID: ");
+  String ssid = readSerialInput();
+  Serial.print("Enter password: ");
+  String password = readSerialInput();
+
+  connectWiFi(ssid.c_str(), password.c_str());
+}
+
+// List available WiFi networks
+void listAvailableNetworks() {
+  int n = WiFi.scanNetworks();
+  Serial.println("Available WiFi networks:");
+  for (int i = 0; i < n; i++) {
+    Serial.println(WiFi.SSID(i) + " (" + String(WiFi.RSSI(i)) + " dBm)");
+  }
+}
+
+// Show the current WiFi connection status
+void showConnectionStatus() {
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("Connected to: " + WiFi.SSID());
+    Serial.println("IP: " + WiFi.localIP().toString());
+    Serial.println("Signal strength: " + String(WiFi.RSSI()) + " dBm");
+  } else {
+    Serial.println("Not connected to WiFi.");
+  }
+}
+
+// Disconnect from the current WiFi network
+void disconnectFromWiFi() {
+  WiFi.disconnect();
+  Serial.println("Disconnected from WiFi.");
+}
+
+// Show serial menu
 void showSerialMenu() {
   Serial.println("\n=== MENU ===");
   Serial.println("1. Connect to saved network");
@@ -120,69 +160,7 @@ void showSerialMenu() {
   Serial.print("Select option: ");
 }
 
-void connectToWiFi() {
-  WiFi.begin(ssid_default, pass_default);
-  Serial.print("Connecting to WiFi...");
-  int retries = 0;
-  while (WiFi.status() != WL_CONNECTED && retries++ < wifiRetries) {
-    delay(1000);
-    Serial.print(".");
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println(" ✅ Connected!");
-    Serial.print("IP: "); Serial.println(WiFi.localIP());
-  } else {
-    Serial.println(" ❌ Connection failed.");
-  }
-}
-
-void listAvailableNetworks() {
-  int n = WiFi.scanNetworks();
-  Serial.println("Available WiFi networks:");
-  for (int i = 0; i < n; i++) {
-    Serial.println(WiFi.SSID(i) + " (" + String(WiFi.RSSI(i)) + " dBm)");
-  }
-}
-
-void connectToNewWiFi() {
-  Serial.print("Enter new network SSID: ");
-  String ssid = readSerialInput();
-  Serial.print("Enter password: ");
-  String password = readSerialInput();
-
-  WiFi.begin(ssid.c_str(), password.c_str());
-  Serial.print("Connecting to: " + ssid + "...");
-
-  int retries = 0;
-  while (WiFi.status() != WL_CONNECTED && retries++ < wifiRetries) {
-    delay(1000);
-    Serial.print(".");
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println(" ✅ Connected!");
-    Serial.print("IP: "); Serial.println(WiFi.localIP());
-  } else {
-    Serial.println(" ❌ Connection failed.");
-  }
-}
-
-void showConnectionStatus() {
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("Connected to: " + WiFi.SSID());
-    Serial.println("IP: " + WiFi.localIP().toString());
-    Serial.println("Signal strength: " + String(WiFi.RSSI()) + " dBm");
-  } else {
-    Serial.println("Not connected to WiFi.");
-  }
-}
-
-void disconnectFromWiFi() {
-  WiFi.disconnect();
-  Serial.println("Disconnected from WiFi.");
-}
-
+// Read input from Serial
 String readSerialInput() {
   String input = "";
   while (Serial.available() == 0) {}
@@ -191,6 +169,7 @@ String readSerialInput() {
   return input;
 }
 
+// Serve HTML from memory (embedded)
 void serveHTML_P(const char* html_template) {
   String html = FPSTR(html_template);
 
@@ -214,4 +193,19 @@ void serveHTML_P(const char* html_template) {
   }
 
   server.send(200, "text/html", html);
+}
+
+// Function to calculate signal strength percentage
+int rssiToPercentage(int rssi) {
+  if (rssi <= RSSI_MIN) return 0;
+  if (rssi >= RSSI_MAX) return 100;
+  return map(rssi, RSSI_MIN, RSSI_MAX, 0, 100);
+}
+
+int getSignalStrengthPercentage() {
+  return rssiToPercentage(WiFi.RSSI());
+}
+
+int getSignalStrengthPercentage(int networkIndex) {
+  return rssiToPercentage(WiFi.RSSI(networkIndex));
 }
