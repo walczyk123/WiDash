@@ -24,7 +24,7 @@ void setup() {
   timeClient.begin();
 
   // Setup routes
-  setupRoutes(server);
+  setupRoutes(server, timeClient, serveHTML_P, serveJSON);
 
   // Start server
   server.begin();
@@ -197,6 +197,10 @@ void serveHTML_P(const char* html_template) {
   }
 
   server.send(200, "text/html", html);
+}
+
+void serveJSON(const String& json) {
+  server.send(200, "application/json", json);
 }
 
 int getSignalStrengthPercentage() {
